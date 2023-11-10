@@ -1,0 +1,118 @@
+---
+title: "mmsci2023.rmd"
+author: "Michael Cho"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true  
+---  
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(data.table)
+require(tidyverse)
+require(DT)
+```
+
+# Read data
+
+```{r readDat}
+dat<-read.csv("/Users/michaelcho/Dropbox (Partners HealthCare)/WorkShare/MmsciGeneticEpi/Mmsci2022/CI 724_ Post-Course Goals-Based Evaluation_021023.csv")
+## convert answers to numeric
+cm <- function(conf) {
+  return(switch(conf,
+    "Very not confident"=1,
+    "Somewhat not confident"=2,
+    "Neutral"=3,
+    "Somewhat confident"=4,
+    "Very confident"=5
+  ))
+}
+hl<-function(hl) { 
+  return(switch(hl,
+    "Not helpful"=1,
+    "Somewhat unhelpful"=2,
+    "Neutral"=3,
+    "Somewhat helpful"=4,
+    "Very helpful"=5))
+}
+confCols<-grep("How.confident",names(dat))
+for (col3 in confCols)
+ dat[,col3]<-sapply(dat[,col3],function(x) cm(trimws(x)))
+helpCols<-22:28
+for (col3 in helpCols)
+  dat[,col3]<-sapply(dat[,col3],function(x) hl(trimws(x)))
+```
+
+# Confidence
+What are they the least confident about
+```{r conf}
+confs<-sapply(confCols,function(x) round(mean(dat[,x]),2))
+## now label by the questions
+n2<-sapply(names(dat[,confCols]),function(x) gsub("How.confident.do.you.feel.that.you","",x))
+## save for later
+## ug - still too long
+n2<-c("utility of genetics in your own program","data quality","single SNP","GWAS","rare vars","limitations of approaches","functional and bioinformatics",
+      "literature")
+topNames<-n2[1:6]
+datatable(data.frame(topic=n2[order(confs)],conf=(confs[order(confs)]),row.names=NULL))
+```
+
+Least confident about rare variant analysis, then quality of genetic data, then single SNP studies.
+Bad lecture, or this could be just how hard it is to do rare variant analyses?
+
+# Helpful
+What was most or least helpful?
+```{r help}
+hp<-sapply(helpCols,function(x) round(mean(dat[,x]),2))
+## now label by the questions
+n3<-sapply(names(dat[,helpCols]),function(x) gsub("..Pre.work||..Module","",x))
+datatable(data.frame(topic=n2[order(hp)],helpful=(hp[order(hp)]),row.names=NULL))
+```
+
+Most helpful were Benj's and the introduction to data? Could redo DAGS or analysis of a single locus.
+
+# Reflections
+
+```{r projs}
+refl<-grep("apply.refle",names(dat))
+allRes<-NULL
+for (i in 1:length(refl)) {
+  ref<-refl[i]
+  dat2<-data.frame(vals=as.vector(unlist(sapply(dat[,ref], function(x) strsplit(x,";")))),
+                   quest=topNames[i])
+  allRes<-rbind(allRes,dat2)
+}
+allRes$vals[allRes$vals=="Journal clubs"]<-"Journal club"
+sort(table(allRes$vals))
+datatable(data.frame(table(allRes[,c("vals","quest")])),filter='top')
+```
+
+People did not find the peer assessments helpful.
+Journal clubs may be less helpful?
+Preclass video on data qual could be better?
+
+# Open ended
+
+```{r other}
+dat[8,7]
+## nature protocols
+dat[,21]
+## nature reviews, more in class, more journal clubs
+dat[,36:39]
+## gwas and LD
+```
+
+# Conclusions
+
+1. Nature protocols and nature reviews can be provided earlier
+2. Increase in class time
+3. Consider redoing the DAG, rare variant, single SNP lectures? Or add more extensive discussion about GWAS?
+
+```{r sess}
+sessionInfo()
+```
